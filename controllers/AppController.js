@@ -15,4 +15,4 @@ class AppController {
     return res.status(200).send({ users, files });
   }
 }
-module.exports = AppController;
+export default AppController;
