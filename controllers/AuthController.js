@@ -24,20 +24,18 @@ class AuthController {
       const token = uuidv4();
       const key = `auth_${token}`;
       await redisClient.set(key, user._id.toString(), 86400);
-      res.status(200).send({ token });
-    } else {
-      res.status(401).send({ error: 'Unauthorized' });
+      return res.status(200).send({ token });
     }
+    return res.status(401).send({ error: 'Unauthorized' });
   }
 
-  // eslint-disable-next-line consistent-return
   static async getDisconnect(req, res) {
-    const token = req.headers['x-token'];
+    const token = req.header('x-token');
     if (!token) return res.status(401).send({ error: 'Unauthorized' });
     const userId = await redisClient.get(`auth_${token}`);
     if (!userId) return res.status(401).send({ error: 'Unauthorized' });
     await redisClient.del(`auth_${token}`);
-    res.status(204).send();
+    return res.status(204).send({});
   }
 }
 
