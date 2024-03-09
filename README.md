@@ -52,10 +52,10 @@ To get started with the alx-files_manager project, follow these steps:
 4. Start the application:
 
    ```bash
-   npm start
+   npm run start-server
    ```
 
-5. Open your web browser and navigate to `http://localhost:3000` to access the application.
+5. Open your web browser and navigate to `http://localhost:5000` to access the application.
 
 ## Project Structure
 
@@ -68,8 +68,6 @@ The project structure is as follows:
 - `middlewares/`: Contains the middleware functions.
 - `config/`: Contains the configuration files.
 - `utils/`: Contains utility functions.
-- `public/`: Contains static files such as CSS and images.
-- `views/`: Contains the views for rendering HTML templates.
 
 ## API Endpoints
 
