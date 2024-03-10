@@ -93,7 +93,7 @@ class FilesController {
         .findOne({ _id: ObjectID(fileId), userId: userAuth });
 
       if (!file) {
-        return res.status(404).json({ error: 'Not found' });
+        return res.status(404).json({ error: 'Files Not found' });
       }
 
       return res.status(200).json({
@@ -119,16 +119,15 @@ class FilesController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
-      const { parentId = 0, page = 0 } = req.query;
+      let { parentId, page } = req.query;
+      if (parentId === '0' || !parentId) parentId = 0;
+      page = parseInt(page, 10) || 0;
       const limit = 20;
-      const skip = parseInt(page, 10) * limit;
-      console.log('skip: ', skip);
+      const skip = page * limit;
       const query = { userId: userAuth };
-      console.log('user: ', userAuth);
       if (parentId !== 0) {
         query.parentId = parentId;
       }
-      console.log('query: ', query);
 
       const files = await dbClient.db
         .collection('files')
@@ -140,7 +139,6 @@ class FilesController {
           { $limit: limit },
         ])
         .toArray();
-      console.log('files: ', files);
 
       const filesWithoutLocalPath = files.map((file) => {
         const { localPath, ...fileWithoutLocalPath } = file;
