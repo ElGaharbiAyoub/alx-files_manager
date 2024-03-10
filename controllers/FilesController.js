@@ -117,7 +117,10 @@ class FilesController {
     const { parentId = 0, page = 0 } = req.query;
     const limit = 20;
     const skip = page * limit;
-    const query = { parentId, userId: userAuth };
+    const query = { userId: userAuth };
+    if (parentId !== 0) {
+      query.parentId = ObjectID(parentId);
+    }
 
     const files = await dbClient.db
       .collection('files')
@@ -129,6 +132,9 @@ class FilesController {
         { $limit: limit },
       ])
       .toArray();
+    if (!files || files.length === 0) {
+      return res.status(404).json({ error: 'Files not found' });
+    }
 
     const filesWithoutLocalPath = files.map((file) => {
       const { localPath, ...fileWithoutLocalPath } = file;
