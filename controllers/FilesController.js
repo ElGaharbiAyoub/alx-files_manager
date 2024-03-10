@@ -130,7 +130,11 @@ class FilesController {
       ])
       .toArray();
 
-    return res.status(200).json(files);
+    const filesWithoutLocalPath = files.map((file) => {
+      const { localPath, ...fileWithoutLocalPath } = file;
+      return fileWithoutLocalPath;
+    });
+    return res.status(200).json(filesWithoutLocalPath);
   }
 }
 export default FilesController;
