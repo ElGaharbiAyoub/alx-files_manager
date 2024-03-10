@@ -150,5 +150,77 @@ class FilesController {
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
+
+  static async putPublish(req, res) {
+    const token = req.header('x-token');
+
+    // Retrieve the user based on the token
+    const userAuth = await redisClient.get(`auth_${token}`);
+    if (!userAuth) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const fileId = req.params.id;
+    try {
+      const file = await dbClient.db
+        .collection('files')
+        .findOne({ _id: ObjectID(fileId), userId: userAuth });
+
+      if (!file) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+
+      await dbClient.db
+        .collection('files')
+        .updateOne({ _id: ObjectID(fileId) }, { $set: { isPublic: true } });
+
+      return res.status(200).json({
+        id: file._id,
+        userId: file.userId,
+        name: file.name,
+        type: file.type,
+        isPublic: true,
+        parentId: file.parentId,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  static async putUnpublish(req, res) {
+    const token = req.header('x-token');
+
+    // Retrieve the user based on the token
+    const userAuth = await redisClient.get(`auth_${token}`);
+    if (!userAuth) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const fileId = req.params.id;
+    try {
+      const file = await dbClient.db
+        .collection('files')
+        .findOne({ _id: ObjectID(fileId), userId: userAuth });
+
+      if (!file) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+
+      await dbClient.db
+        .collection('files')
+        .updateOne({ _id: ObjectID(fileId) }, { $set: { isPublic: false } });
+
+      return res.status(200).json({
+        id: file._id,
+        userId: file.userId,
+        name: file.name,
+        type: file.type,
+        isPublic: false,
+        parentId: file.parentId,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
 }
 export default FilesController;
