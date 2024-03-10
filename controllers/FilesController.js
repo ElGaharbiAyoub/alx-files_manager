@@ -114,7 +114,6 @@ class FilesController {
     if (!userAuth) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log(userAuth);
     const { parentId = 0, page = 0 } = req.query;
     const limit = 20;
     const skip = page * limit;
@@ -130,7 +129,6 @@ class FilesController {
         { $limit: limit },
       ])
       .toArray();
-    console.log(files);
 
     return res.status(200).json(files);
   }
