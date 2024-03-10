@@ -114,30 +114,47 @@ class FilesController {
     if (!userAuth) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const { parentId = 0, page = 0 } = req.query;
-    const limit = 20;
-    const skip = page * limit;
+    const { parentId, page } = req.query;
+    const pageNum = parseInt(page, 10) || 0;
+
+    const files = dbClient.db.collection('files');
     const query = { userId: userAuth };
-    if (parentId !== 0) {
+
+    if (parentId) {
       query.parentId = ObjectID(parentId);
     }
 
-    const files = await dbClient.db
-      .collection('files')
-      .aggregate([
-        {
-          $match: query,
-        },
-        { $skip: skip },
-        { $limit: limit },
-      ])
-      .toArray();
+    try {
+      const result = await files
+        .aggregate([
+          { $match: query },
+          { $sort: { _id: -1 } },
+          {
+            $facet: {
+              metadata: [
+                { $count: 'total' },
+                { $addFields: { page: pageNum } },
+              ],
+              data: [{ $skip: 20 * pageNum }, { $limit: 20 }],
+            },
+          },
+        ])
+        .toArray();
 
-    const filesWithoutLocalPath = files.map((file) => {
-      const { localPath, ...fileWithoutLocalPath } = file;
-      return fileWithoutLocalPath;
-    });
-    return res.status(200).json(filesWithoutLocalPath);
+      if (!result || result.length === 0 || !result[0].data) {
+        return res.status(404).json({ error: 'Files not found' });
+      }
+
+      const final = result[0].data.map((file) => ({
+        ...file,
+        id: file._id.toString(),
+      }));
+
+      return res.status(200).json(final);
+    } catch (error) {
+      console.error('Error getting files:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
   }
 }
 export default FilesController;
