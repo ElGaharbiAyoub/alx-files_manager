@@ -122,10 +122,13 @@ class FilesController {
       const { parentId = 0, page = 0 } = req.query;
       const limit = 20;
       const skip = parseInt(page, 10) * limit;
-      const query = { userId: ObjectID(userAuth) };
+      console.log('skip: ', skip);
+      const query = { userId: userAuth };
+      console.log('user: ', userAuth);
       if (parentId !== 0) {
-        query.parentId = ObjectID(parentId);
+        query.parentId = parentId;
       }
+      console.log('query: ', query);
 
       const files = await dbClient.db
         .collection('files')
@@ -137,6 +140,7 @@ class FilesController {
           { $limit: limit },
         ])
         .toArray();
+      console.log('files: ', files);
 
       const filesWithoutLocalPath = files.map((file) => {
         const { localPath, ...fileWithoutLocalPath } = file;
