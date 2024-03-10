@@ -93,7 +93,7 @@ class FilesController {
         .findOne({ _id: ObjectID(fileId), userId: userAuth });
 
       if (!file) {
-        return res.status(404).json({ error: 'Files Not found' });
+        return res.status(404).json({ error: 'Not found' });
       }
 
       return res.status(200).json({
