@@ -163,15 +163,17 @@ class FilesController {
     try {
       const file = await dbClient.db
         .collection('files')
-        .findOne({ _id: ObjectID(fileId), userId: userAuth });
+        .findOne({ _id: ObjectID(fileId.toString()), userId: userAuth });
 
       if (!file) {
         return res.status(404).json({ error: 'Not found' });
       }
 
-      await dbClient.db
-        .collection('files')
-        .updateOne({ _id: ObjectID(fileId) }, { $set: { isPublic: true } });
+      await dbClient.db.collection('files').updateOne(
+        { _id: ObjectID(fileId.toString()) },
+        // eslint-disable-next-line comma-dangle
+        { $set: { isPublic: true } }
+      );
 
       return res.status(200).json({
         id: file._id,
