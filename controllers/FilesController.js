@@ -86,8 +86,8 @@ class FilesController {
     if (!userAuth) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+    const fileId = req.params.id;
     try {
-      const fileId = req.params.id;
       const file = await dbClient.db
         .collection('files')
         .findOne({ _id: ObjectID(fileId), userId: userAuth });
@@ -106,7 +106,7 @@ class FilesController {
       });
     } catch (error) {
       console.log('error: ', error);
-      return res.status(404).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -121,8 +121,8 @@ class FilesController {
     try {
       const { parentId = 0, page = 0 } = req.query;
       const limit = 20;
-      const skip = page * limit;
-      const query = { userId: userAuth };
+      const skip = parseInt(page, 10) * limit;
+      const query = { userId: ObjectID(userAuth) };
       if (parentId !== 0) {
         query.parentId = ObjectID(parentId);
       }
@@ -145,7 +145,7 @@ class FilesController {
       return res.status(200).json(filesWithoutLocalPath);
     } catch (error) {
       console.log('error: ', error);
-      return res.status(404).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 }
