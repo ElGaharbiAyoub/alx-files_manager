@@ -79,7 +79,6 @@ class FilesController {
   }
 
   static async getShow(req, res) {
-    const fileId = req.params.id;
     const token = req.header('x-token');
 
     // Retrieve the user based on the token
@@ -87,23 +86,28 @@ class FilesController {
     if (!userAuth) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+    try {
+      const fileId = req.params.id;
+      const file = await dbClient.db
+        .collection('files')
+        .findOne({ _id: ObjectID(fileId), userId: userAuth });
 
-    const file = await dbClient.db
-      .collection('files')
-      .findOne({ _id: ObjectID(fileId), userId: userAuth });
+      if (!file) {
+        return res.status(404).json({ error: 'Not found' });
+      }
 
-    if (!file) {
-      return res.status(404).json({ error: 'Not found' });
+      return res.status(200).json({
+        id: file._id,
+        userId: file.userId,
+        name: file.name,
+        type: file.type,
+        isPublic: file.isPublic,
+        parentId: file.parentId,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return res.status(404).json({ error: 'Internal server error' });
     }
-
-    return res.status(200).json({
-      id: file._id,
-      userId: file.userId,
-      name: file.name,
-      type: file.type,
-      isPublic: file.isPublic,
-      parentId: file.parentId,
-    });
   }
 
   static async getIndex(req, res) {
@@ -114,46 +118,34 @@ class FilesController {
     if (!userAuth) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const { parentId, page } = req.query;
-    const pageNum = parseInt(page, 10) || 0;
-
-    const files = dbClient.db.collection('files');
-    const query = { userId: userAuth };
-
-    if (parentId) {
-      query.parentId = ObjectID(parentId);
-    }
-
     try {
-      const result = await files
+      const { parentId = 0, page = 0 } = req.query;
+      const limit = 20;
+      const skip = page * limit;
+      const query = { userId: userAuth };
+      if (parentId !== 0) {
+        query.parentId = ObjectID(parentId);
+      }
+
+      const files = await dbClient.db
+        .collection('files')
         .aggregate([
-          { $match: query },
-          { $sort: { _id: -1 } },
           {
-            $facet: {
-              metadata: [
-                { $count: 'total' },
-                { $addFields: { page: pageNum } },
-              ],
-              data: [{ $skip: 20 * pageNum }, { $limit: 20 }],
-            },
+            $match: query,
           },
+          { $skip: skip },
+          { $limit: limit },
         ])
         .toArray();
 
-      if (!result || result.length === 0 || !result[0].data) {
-        return res.status(404).json({ error: 'Files not found' });
-      }
-
-      const final = result[0].data.map((file) => ({
-        ...file,
-        id: file._id.toString(),
-      }));
-
-      return res.status(200).json(final);
+      const filesWithoutLocalPath = files.map((file) => {
+        const { localPath, ...fileWithoutLocalPath } = file;
+        return fileWithoutLocalPath;
+      });
+      return res.status(200).json(filesWithoutLocalPath);
     } catch (error) {
-      console.error('Error getting files:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      console.log('error: ', error);
+      return res.status(404).json({ error: 'Internal server error' });
     }
   }
 }
