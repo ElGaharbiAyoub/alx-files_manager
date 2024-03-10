@@ -132,9 +132,6 @@ class FilesController {
         { $limit: limit },
       ])
       .toArray();
-    if (!files || files.length === 0) {
-      return res.status(404).json({ error: 'Files not found' });
-    }
 
     const filesWithoutLocalPath = files.map((file) => {
       const { localPath, ...fileWithoutLocalPath } = file;
