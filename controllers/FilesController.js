@@ -88,10 +88,10 @@ class FilesController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const fileId = req.params.id;
+    const query = { _id: ObjectId(fileId), userId: userAuth };
+    console.log('query: ', query);
     try {
-      const file = await dbClient.db
-        .collection('files')
-        .findOne({ _id: ObjectId(fileId), userId: ObjectId(userAuth) });
+      const file = await dbClient.db.collection('files').findOne(query);
 
       if (!file) {
         return res.status(404).json({ error: 'Not found' });
@@ -129,11 +129,7 @@ class FilesController {
       const limit = 20;
       const skip = page * limit;
       const query = { userId: userAuth };
-      if (parentId !== '0') {
-        query.parentId = parentId;
-      } else {
-        query.parentId = parentId;
-      }
+      query.parentId = parentId;
       console.log('query: ', query);
 
       const files = await dbClient.db
