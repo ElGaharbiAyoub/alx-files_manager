@@ -1,4 +1,4 @@
-import { ObjectID } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import fs from 'fs';
@@ -30,7 +30,7 @@ class FilesController {
     if (parentId !== 0) {
       const parentFile = await dbClient.db
         .collection('files')
-        .findOne({ _id: ObjectID(parentId) });
+        .findOne({ _id: ObjectId(parentId) });
       if (!parentFile) {
         return res.status(400).json({ error: 'Parent not found' });
       }
@@ -91,7 +91,7 @@ class FilesController {
     try {
       const file = await dbClient.db
         .collection('files')
-        .findOne({ _id: ObjectID(fileId), userId: userAuth });
+        .findOne({ _id: ObjectId(fileId), userId: ObjectId(userAuth) });
 
       if (!file) {
         return res.status(404).json({ error: 'Not found' });
@@ -113,6 +113,9 @@ class FilesController {
 
   static async getIndex(req, res) {
     const token = req.header('x-token');
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     // Retrieve the user based on the token
     const userAuth = await redisClient.get(`auth_${token}`);
@@ -121,14 +124,17 @@ class FilesController {
     }
     try {
       let { parentId, page } = req.query;
-      if (parentId === '0' || !parentId) parentId = 0;
+      if (parentId === '0' || !parentId) parentId = '0';
       page = parseInt(page, 10) || 0;
       const limit = 20;
       const skip = page * limit;
       const query = { userId: userAuth };
-      if (parentId !== 0) {
+      if (parentId !== '0') {
+        query.parentId = parentId;
+      } else {
         query.parentId = parentId;
       }
+      console.log('query: ', query);
 
       const files = await dbClient.db
         .collection('files')
@@ -142,7 +148,8 @@ class FilesController {
         .toArray();
 
       const filesWithoutLocalPath = files.map((file) => {
-        const { localPath, ...fileWithoutLocalPath } = file;
+        const { localPath, _id, ...fileWithoutLocalPath } = file;
+        fileWithoutLocalPath.id = file._id;
         return fileWithoutLocalPath;
       });
       return res.status(200).json(filesWithoutLocalPath);
@@ -164,14 +171,14 @@ class FilesController {
     try {
       const file = await dbClient.db
         .collection('files')
-        .findOne({ _id: ObjectID(fileId.toString()), userId: userAuth });
+        .findOne({ _id: ObjectId(fileId.toString()), userId: userAuth });
 
       if (!file) {
         return res.status(404).json({ error: 'Not found' });
       }
 
       await dbClient.db.collection('files').updateOne(
-        { _id: ObjectID(fileId.toString()) },
+        { _id: ObjectId(fileId.toString()) },
         // eslint-disable-next-line comma-dangle
         { $set: { isPublic: true } }
       );
@@ -202,7 +209,7 @@ class FilesController {
     try {
       const file = await dbClient.db
         .collection('files')
-        .findOne({ _id: ObjectID(fileId), userId: userAuth });
+        .findOne({ _id: ObjectId(fileId), userId: userAuth });
 
       if (!file) {
         return res.status(404).json({ error: 'Not found' });
@@ -210,7 +217,7 @@ class FilesController {
 
       await dbClient.db
         .collection('files')
-        .updateOne({ _id: ObjectID(fileId) }, { $set: { isPublic: false } });
+        .updateOne({ _id: ObjectId(fileId) }, { $set: { isPublic: false } });
 
       return res.status(200).json({
         id: file._id,
@@ -229,7 +236,7 @@ class FilesController {
   static async getFile(req, res) {
     const fileId = req.params.id;
     const files = dbClient.db.collection('files');
-    const file = await files.findOne({ _id: ObjectID(fileId) });
+    const file = await files.findOne({ _id: ObjectId(fileId) });
 
     if (!file) {
       return res.status(404).json({ error: 'Not found' });
@@ -253,7 +260,7 @@ class FilesController {
       const userid = await redisClient.get(`auth_${token}`);
       const user = await dbClient.db
         .collection('users')
-        .findOne({ _id: ObjectID(userid) });
+        .findOne({ _id: ObjectId(userid) });
 
       if (!user) {
         return res.status(401).json({ error: 'Not found' });
