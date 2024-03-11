@@ -88,7 +88,7 @@ class FilesController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const fileId = req.params.id;
-    const query = { _id: ObjectId(fileId), userId: userAuth };
+    const query = { _id: ObjectId(fileId), userId: ObjectId(userAuth) };
     console.log('query: ', query);
     try {
       const file = await dbClient.db.collection('files').findOne(query);
@@ -128,8 +128,12 @@ class FilesController {
       page = parseInt(page, 10) || 0;
       const limit = 20;
       const skip = page * limit;
-      const query = { userId: userAuth };
-      query.parentId = parentId;
+      const query = { userId: ObjectId(userAuth) };
+      if (parentId !== '0') {
+        query.parentId = ObjectId(parentId);
+      } else {
+        query.parentId = parentId;
+      }
       console.log('query: ', query);
 
       const files = await dbClient.db
