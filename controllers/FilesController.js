@@ -227,42 +227,55 @@ class FilesController {
   }
 
   static async getFile(req, res) {
-    const token = req.header('x-token');
-
-    // Retrieve the user based on the token
-    const userAuth = await redisClient.get(`auth_${token}`);
     const fileId = req.params.id;
-    try {
-      const file = await dbClient.db
-        .collection('files')
-        .findOne({ _id: ObjectID(fileId) });
+    const files = dbClient.db.collection('files');
+    const file = await files.findOne({ _id: ObjectID(fileId) });
 
-      if (!file) {
-        return res.status(404).json({ error: 'Not found' });
-      }
-      if (!file.isPublic && (!userAuth || file.userId !== userAuth)) {
-        return res.status(404).json({ error: 'Not found' });
-      }
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    if (file.isPublic) {
       if (file.type === 'folder') {
         return res.status(400).json({ error: "A folder doesn't have content" });
       }
-      if (!fs.existsSync(file.localPath)) {
+      try {
+        const data = await fs.promises.readFile(file.localPath);
+        const contentType = mime.lookup(file.name);
+        res.setHeader('Content-Type', contentType);
+        return res.status(200).send(data);
+      } catch (error) {
+        console.error('Error getting file:', error);
+        return res.status(404).json({ error: 'Not found' });
+      }
+    } else {
+      const token = req.header('x-token');
+      const userid = await redisClient.get(`auth_${token}`);
+      const user = await dbClient.db
+        .collection('users')
+        .findOne({ _id: ObjectID(userid) });
+
+      if (!user) {
+        return res.status(401).json({ error: 'Not found' });
+      }
+      if (file.userId.toString() !== user._id.toString()) {
         return res.status(404).json({ error: 'Not found' });
       }
 
-      const mimeType = mime.lookup(file.name);
-      if (!mimeType) {
-        return res.status(500).json({ error: 'Internal server error' });
+      if (file.type === 'folder') {
+        return res.status(400).json({ error: "A folder doesn't have content" });
       }
 
-      res.setHeader('Content-Type', mimeType);
-      const fileStream = fs.createReadStream(file.localPath);
-      fileStream.pipe(res);
-
-      return fileStream;
-    } catch (error) {
-      console.log('error: ', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      try {
+        const contentType = mime.contentType(file.name);
+        return res
+          .header('Content-Type', contentType)
+          .status(200)
+          .sendFile(file.localPath);
+      } catch (error) {
+        console.log('error: ', error);
+        return res.status(404).json({ error: 'Not found' });
+      }
     }
   }
 }
