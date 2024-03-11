@@ -13,8 +13,9 @@ class AuthController {
       'base64'
     ).toString('utf-8');
     const [email, password] = decodedCredentials.split(':');
-    const hashedPassword = sha1(password);
 
+    if (!email || !password) return res.status(401).send({ error: 'Unauthorized' });
+    const hashedPassword = sha1(password);
     // Find the user associated with the email and hashed password
     const user = await dbClient.db.collection('users').findOne({
       email,
