@@ -9,7 +9,8 @@ import redisClient from '../utils/redis';
 class FilesController {
   static async postUpload(req, res) {
     // eslint-disable-next-line object-curly-newline
-    const { name, type, parentId = 0, isPublic = false, data } = req.body;
+    const { name, type, data, isPublic = false } = req.body;
+    let { parentId = 0 } = req.body;
 
     const token = req.header('x-token');
 
@@ -38,6 +39,7 @@ class FilesController {
         return res.status(400).json({ error: 'Parent is not a folder' });
       }
     }
+    parentId = parentId !== 0 ? ObjectId(parentId) : 0;
 
     const fileId = uuidv4();
     const file = {
